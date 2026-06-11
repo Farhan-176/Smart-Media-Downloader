@@ -1,0 +1,42 @@
+{
+  "downloadId": "2fffcb11cf3fde19",
+  "url": "https://www.google.com/robots.txt",
+  "filename": "robots_test.txt",
+  "filePath": "E:\\ongoing projects\\internet download manager\\scripts\\tmp_downloads\\robots_test.txt",
+  "fileSize": 1510,
+  "contentType": "text/plain",
+  "status": "error",
+  "createdAt": "2026-06-08T15:12:07.401Z",
+  "segments": [
+    {
+      "segmentId": 0,
+      "startByte": 0,
+      "endByte": 376,
+      "downloadedBytes": 0,
+      "status": "pending"
+    },
+    {
+      "segmentId": 1,
+      "startByte": 377,
+      "endByte": 753,
+      "downloadedBytes": 0,
+      "status": "pending"
+    },
+    {
+      "segmentId": 2,
+      "startByte": 754,
+      "endByte": 1130,
+      "downloadedBytes": 0,
+      "status": "pending"
+    },
+    {
+      "segmentId": 3,
+      "startByte": 1131,
+      "endByte": 1509,
+      "downloadedBytes": 0,
+      "status": "pending"
+    }
+  ],
+  "error": "Decompression failed",
+  "lastUpdated": "2026-06-08T15:12:15.205Z"
+}

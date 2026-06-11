@@ -1,0 +1,48 @@
+{
+  "downloadId": "0ddf65854220a4e8",
+  "url": "https://www.google.com/robots.txt",
+  "filename": "robots_test.txt",
+  "filePath": "E:\\ongoing projects\\internet download manager\\scripts\\tmp_downloads\\robots_test.txt",
+  "fileSize": 1510,
+  "contentType": "text/plain",
+  "status": "completed",
+  "createdAt": "2026-06-08T15:12:35.151Z",
+  "segments": [
+    {
+      "segmentId": 0,
+      "startByte": 0,
+      "endByte": 376,
+      "downloadedBytes": 377,
+      "status": "completed"
+    },
+    {
+      "segmentId": 1,
+      "startByte": 377,
+      "endByte": 753,
+      "downloadedBytes": 0,
+      "status": "downloading"
+    },
+    {
+      "segmentId": 2,
+      "startByte": 754,
+      "endByte": 1130,
+      "downloadedBytes": 377,
+      "status": "downloading"
+    },
+    {
+      "segmentId": 3,
+      "startByte": 1131,
+      "endByte": 1509,
+      "downloadedBytes": 379,
+      "status": "completed"
+    }
+  ],
+  "progress": {
+    "totalBytes": 1510,
+    "downloadedBytes": 1133,
+    "percentage": 75.03311258278146,
+    "speed": 0,
+    "eta": null
+  },
+  "lastUpdated": "2026-06-08T15:12:35.500Z"
+}
