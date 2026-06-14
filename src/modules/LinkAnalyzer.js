@@ -32,6 +32,7 @@ class LinkAnalyzer {
       try {
         return await VideoExtractor.extract(url);
       } catch (error) {
+        console.error('Video extractor failed, falling back to HTTP headers:', error);
         // Fall back to HTTP header analysis if the extractor cannot handle the URL
       }
     }
