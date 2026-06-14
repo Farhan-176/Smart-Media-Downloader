@@ -106,6 +106,35 @@ class MetadataManager {
   }
 
   /**
+   * Get all downloads
+   * @returns {Promise<Array<Object>>} Array of all downloads
+   */
+  async getAllDownloads() {
+    try {
+      const files = await fs.readdir(this.metadataDir);
+      const metadataFiles = files.filter(file => file.endsWith('.json'));
+
+      const downloads = await Promise.all(
+        metadataFiles.map(async (file) => {
+          const downloadId = path.basename(file, '.json');
+          const metadata = await this.loadMetadata(downloadId);
+          if (metadata) {
+            return {
+              downloadId,
+              ...metadata
+            };
+          }
+          return null;
+        })
+      );
+
+      return downloads.filter(d => d !== null);
+    } catch (error) {
+      throw new Error(`Failed to get all downloads: ${error.message}`);
+    }
+  }
+
+  /**
    * Check if metadata exists
    * @param {string} downloadId - Download identifier
    * @returns {Promise<boolean>} True if exists

@@ -1,10 +1,17 @@
-const { app, BrowserWindow, ipcMain, clipboard } = require('electron');
+const { app, BrowserWindow, ipcMain, clipboard, Notification } = require('electron');
 const path = require('path');
 const fs = require('fs').promises;
+const http = require('http');
 const LinkAnalyzer = require('./modules/LinkAnalyzer');
 const DownloadManager = require('./modules/DownloadManager');
 const MetadataManager = require('./modules/MetadataManager');
 const VideoExtractor = require('./modules/VideoExtractor');
+
+function showSystemNotification(title, body) {
+  if (Notification.isSupported()) {
+    new Notification({ title, body }).show();
+  }
+}
 
 let lastClipboardText = '';
 function startClipboardPolling() {
@@ -27,6 +34,7 @@ function startClipboardPolling() {
 let mainWindow;
 let downloadManager;
 let metadataManager;
+let integrationServer;
 
 // Create main application window
 function createWindow() {
@@ -75,9 +83,108 @@ app.whenReady().then(async () => {
   metadataManager = new MetadataManager(metadataDir);
   downloadManager = new DownloadManager(downloadDir, metadataManager);
 
+  // Start local HTTP server for browser extension integration
+  integrationServer = http.createServer((req, res) => {
+    // Enable CORS
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') {
+      res.writeHead(200);
+      res.end();
+      return;
+    }
+
+    if (req.method === 'POST' && req.url === '/download') {
+      let body = '';
+      req.on('data', chunk => { body += chunk; });
+      req.on('end', () => {
+        try {
+          const data = JSON.parse(body);
+          if (data.url) {
+            // Forward to renderer to trigger analysis & Download File Info panel
+            if (mainWindow && !mainWindow.isDestroyed()) {
+              mainWindow.show();
+              mainWindow.focus();
+              mainWindow.webContents.send('browser-download-trigger', { url: data.url, filename: data.filename || '' });
+            }
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: true }));
+          } else {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: 'URL is required' }));
+          }
+        } catch (e) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: e.message }));
+        }
+      });
+    } else {
+      res.writeHead(404);
+      res.end();
+    }
+  });
+
+  integrationServer.listen(3010, '127.0.0.1', () => {
+    console.log('Local integration server listening on port 3010');
+  });
+
+  let completionAction = 'none';
+
+  function executeCompletionAction() {
+    const { exec } = require('child_process');
+    if (completionAction === 'shutdown') {
+      showSystemNotification('PC Shutdown Scheduled', 'The computer will shut down in 30 seconds.');
+      exec('shutdown /s /f /t 30', (err) => {
+        if (err) console.error('Shutdown command failed:', err);
+      });
+    } else if (completionAction === 'sleep') {
+      showSystemNotification('PC Sleep Initiated', 'The computer is entering sleep mode.');
+      exec('rundll32.exe powrprof.dll,SetSuspendState 0,1,0', (err) => {
+        if (err) console.error('Sleep command failed:', err);
+      });
+    }
+  }
+
+  // Register completion action IPC handler insidesetup
+  ipcMain.handle('set-completion-action', (event, action) => {
+    completionAction = action;
+    return { success: true };
+  });
+
   downloadManager.on('queue-updated', (queue) => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('queue-updated', queue);
+    }
+  });
+
+  downloadManager.on('complete', async (downloadId) => {
+    try {
+      const metadata = await metadataManager.loadMetadata(downloadId);
+      if (metadata) {
+        showSystemNotification('Download Completed! 🎉', `Successfully downloaded: ${metadata.filename}`);
+      }
+
+      // Check if all downloads in the queue are finished
+      const queue = downloadManager.getQueueState();
+      const hasActiveOrQueued = queue.some(item => ['downloading', 'queued', 'scheduled'].includes(item.status));
+      if (!hasActiveOrQueued) {
+        executeCompletionAction();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  });
+
+  downloadManager.on('error', async (downloadId, errMsg) => {
+    try {
+      const metadata = await metadataManager.loadMetadata(downloadId);
+      if (metadata) {
+        showSystemNotification('Download Failed ❌', `Error downloading ${metadata.filename}: ${errMsg}`);
+      }
+    } catch (err) {
+      console.error(err);
     }
   });
 
@@ -172,6 +279,16 @@ function setupIPCHandlers() {
     }
   });
 
+  // Delete download
+  ipcMain.handle('delete-download', async (event, downloadId, deleteFile) => {
+    try {
+      await downloadManager.deleteDownload(downloadId, deleteFile);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  });
+
   // Get pending downloads (for recovery)
   ipcMain.handle('get-pending-downloads', async () => {
     try {
@@ -197,10 +314,23 @@ function setupIPCHandlers() {
       return { success: false, error: error.message };
     }
   });
+
+  // Select save path dialog
+  ipcMain.handle('select-save-path', async (event, defaultPath) => {
+    const { dialog } = require('electron');
+    const result = await dialog.showSaveDialog(mainWindow, {
+      defaultPath: defaultPath,
+      properties: ['showOverwriteConfirmation']
+    });
+    return result;
+  });
 }
 
 // Graceful shutdown
 app.on('before-quit', async () => {
+  if (integrationServer) {
+    integrationServer.close();
+  }
   if (downloadManager) {
     await downloadManager.cleanup();
   }

@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   pauseDownload: (downloadId) => ipcRenderer.invoke('pause-download', downloadId),
   resumeDownload: (downloadId) => ipcRenderer.invoke('resume-download', downloadId),
   cancelDownload: (downloadId) => ipcRenderer.invoke('cancel-download', downloadId),
+  deleteDownload: (downloadId, deleteFile) => ipcRenderer.invoke('delete-download', downloadId, deleteFile),
   
   // Recovery
   getPendingDownloads: () => ipcRenderer.invoke('get-pending-downloads'),
@@ -33,9 +34,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onClipboardLinkDetected: (callback) => {
     ipcRenderer.on('clipboard-link-detected', (event, url) => callback(url));
   },
+
+  onBrowserDownloadTrigger: (callback) => {
+    ipcRenderer.on('browser-download-trigger', (event, data) => callback(data));
+  },
   
   getQueueState: () => ipcRenderer.invoke('get-queue-state'),
   onQueueUpdated: (callback) => {
     ipcRenderer.on('queue-updated', (event, queue) => callback(queue));
-  }
+  },
+  setCompletionAction: (action) => ipcRenderer.invoke('set-completion-action', action),
+  selectSavePath: (defaultPath) => ipcRenderer.invoke('select-save-path', defaultPath)
 });

@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "Smart Media Downloader Integration",
+  "version": "1.0.0",
+  "description": "Intercepts browser downloads and routes them directly to the Smart Media Downloader desktop app.",
+  "permissions": [
+    "downloads",
+    "contextMenus"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  }
+}

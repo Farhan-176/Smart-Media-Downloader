@@ -1,9 +1,29 @@
 const EventEmitter = require('events');
 const path = require('path');
+const fs = require('fs').promises;
 const crypto = require('crypto');
 const LinkAnalyzer = require('./LinkAnalyzer');
 const SegmentManager = require('./SegmentManager');
 const VideoDownloadManager = require('./VideoDownloadManager');
+
+function getCategorySubfolder(filename, contentType) {
+  const ext = path.extname(filename).toLowerCase().replace(/^\./, '');
+  const type = String(contentType || '').toLowerCase();
+
+  const videoExts = ['mp4', 'mkv', 'webm', 'avi', 'mov', 'flv', 'wmv', 'm4v'];
+  const audioExts = ['mp3', 'm4a', 'wav', 'flac', 'ogg', 'aac', 'wma'];
+  const docExts = ['pdf', 'docx', 'doc', 'txt', 'rtf', 'xlsx', 'xls', 'pptx', 'ppt', 'zip', 'rar', '7z', 'tar', 'gz'];
+
+  if (videoExts.includes(ext) || type.startsWith('video/')) {
+    return 'Videos';
+  } else if (audioExts.includes(ext) || type.startsWith('audio/')) {
+    return 'Music';
+  } else if (docExts.includes(ext) || type.startsWith('application/') || type.startsWith('text/')) {
+    return 'Documents';
+  } else {
+    return 'Others';
+  }
+}
 
 /**
  * DownloadManager - Orchestrates the entire download process
@@ -23,7 +43,31 @@ class DownloadManager extends EventEmitter {
     this.activeDownloads = new Map();
     this.maxConcurrent = 2;
     this.queue = [];
+    this.downloadsList = [];
+    this.loadDownloadsList();
     this.startScheduler();
+  }
+
+  async loadDownloadsList() {
+    try {
+      const allMetadata = await this.metadataManager.getAllDownloads();
+      this.downloadsList = allMetadata.map(meta => ({
+        downloadId: meta.downloadId,
+        filename: meta.filename,
+        url: meta.url,
+        filePath: meta.filePath,
+        fileSize: meta.fileSize,
+        contentType: meta.contentType,
+        status: meta.status,
+        createdAt: meta.createdAt || new Date().toISOString(),
+        progress: meta.progress || null,
+        scheduleTime: meta.scheduleTime,
+        description: meta.description || ''
+      }));
+      this.downloadsList.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    } catch (err) {
+      console.error('Failed to load downloads list:', err);
+    }
   }
 
   /**
@@ -40,9 +84,9 @@ class DownloadManager extends EventEmitter {
       const analyzer = new LinkAnalyzer();
       const metadata = await analyzer.analyze(url);
 
-      // Use provided filename or suggested filename
       const finalFilename = filename || metadata.filename;
-      const filePath = path.join(this.downloadDir, finalFilename);
+      const category = getCategorySubfolder(finalFilename, metadata.contentType);
+      const filePath = options.filePath || path.join(this.downloadDir, category, finalFilename);
 
       let initialStatus = 'queued';
       let scheduleTime = null;
@@ -51,6 +95,10 @@ class DownloadManager extends EventEmitter {
         if (scheduleTime > Date.now()) {
           initialStatus = 'scheduled';
         }
+      }
+
+      if (options.downloadLater) {
+        initialStatus = 'queued';
       }
 
       // Save initial metadata
@@ -73,6 +121,27 @@ class DownloadManager extends EventEmitter {
 
       await this.metadataManager.saveMetadata(downloadId, downloadMetadata);
 
+      // Add to in-memory list
+      const itemIndex = this.downloadsList.findIndex(d => d.downloadId === downloadId);
+      const newListItem = {
+        downloadId,
+        url,
+        filename: finalFilename,
+        filePath,
+        fileSize: metadata.fileSize,
+        contentType: metadata.contentType,
+        status: initialStatus,
+        createdAt: downloadMetadata.createdAt,
+        progress: null,
+        scheduleTime: downloadMetadata.scheduleTime,
+        description: options.description || ''
+      };
+      if (itemIndex > -1) {
+        this.downloadsList[itemIndex] = newListItem;
+      } else {
+        this.downloadsList.unshift(newListItem);
+      }
+
       // Add to queue
       this.queue.push({
         downloadId,
@@ -86,7 +155,7 @@ class DownloadManager extends EventEmitter {
 
       this.emit('queue-updated', this.getQueueState());
 
-      if (initialStatus === 'scheduled') {
+      if (initialStatus === 'scheduled' || options.downloadLater) {
         return downloadId;
       }
 
@@ -104,6 +173,8 @@ class DownloadManager extends EventEmitter {
       for (const item of this.queue) {
         if (item.status === 'scheduled' && item.scheduleTime && item.scheduleTime <= now) {
           item.status = 'queued';
+          const listitem = this.downloadsList.find(d => d.downloadId === item.downloadId);
+          if (listitem) listitem.status = 'queued';
           await this.metadataManager.updateStatus(item.downloadId, 'queued');
           queueChanged = true;
         }
@@ -138,7 +209,10 @@ class DownloadManager extends EventEmitter {
   }
 
   async triggerDownloadStart(downloadId, url, filename, options, metadata) {
-    const filePath = path.join(this.downloadDir, filename);
+    const category = getCategorySubfolder(filename, metadata.contentType);
+    const categoryDir = path.join(this.downloadDir, category);
+    const filePath = options.filePath || path.join(categoryDir, filename);
+    await fs.mkdir(path.dirname(filePath), { recursive: true });
     let managerInstance;
 
     if (metadata.isVideoSource) {
@@ -198,21 +272,17 @@ class DownloadManager extends EventEmitter {
   }
 
   getQueueState() {
-    const active = Array.from(this.activeDownloads.entries()).map(([id, dl]) => ({
-      downloadId: id,
-      filename: dl.metadata.filename,
-      status: dl.segmentManager.status,
-      progress: dl.segmentManager.getProgress()
-    }));
-
-    const queued = this.queue.map(item => ({
-      downloadId: item.downloadId,
-      filename: item.filename,
-      status: item.status,
-      scheduleTime: item.scheduleTime ? new Date(item.scheduleTime).toLocaleString() : null
-    }));
-
-    return [...active, ...queued];
+    return this.downloadsList.map(item => {
+      const active = this.activeDownloads.get(item.downloadId);
+      if (active) {
+        return {
+          ...item,
+          status: active.segmentManager.status,
+          progress: active.segmentManager.getProgress()
+        };
+      }
+      return item;
+    });
   }
 
   /**
@@ -223,21 +293,39 @@ class DownloadManager extends EventEmitter {
   async pauseDownload(downloadId) {
     const download = this.activeDownloads.get(downloadId);
     if (!download) {
-      throw new Error('Download not found');
+      // Check if it's in the queue (queued/paused/scheduled)
+      const queuedItem = this.queue.find(item => item.downloadId === downloadId);
+      if (queuedItem) {
+        queuedItem.status = 'paused';
+        const item = this.downloadsList.find(d => d.downloadId === downloadId);
+        if (item) item.status = 'paused';
+        await this.metadataManager.updateStatus(downloadId, 'paused');
+        this.emit('queue-updated', this.getQueueState());
+        return;
+      }
+      throw new Error('Download not found or not active');
     }
 
     download.segmentManager.pause();
 
     // Update metadata
     const state = download.segmentManager.serialize();
+    const progress = download.segmentManager.getProgress();
     await this.metadataManager.saveMetadata(downloadId, {
       ...download.metadata,
       status: 'paused',
       segments: state.segments,
-      progress: download.segmentManager.getProgress()
+      progress: progress
     });
 
+    const item = this.downloadsList.find(d => d.downloadId === downloadId);
+    if (item) {
+      item.status = 'paused';
+      item.progress = progress;
+    }
+
     await this.metadataManager.updateStatus(downloadId, 'paused');
+    this.emit('queue-updated', this.getQueueState());
   }
 
   /**
@@ -246,6 +334,17 @@ class DownloadManager extends EventEmitter {
    * @returns {Promise<void>}
    */
   async resumeDownload(downloadId) {
+    const queuedItem = this.queue.find(item => item.downloadId === downloadId);
+    if (queuedItem) {
+      queuedItem.status = 'queued';
+      const item = this.downloadsList.find(d => d.downloadId === downloadId);
+      if (item) item.status = 'queued';
+      await this.metadataManager.updateStatus(downloadId, 'queued');
+      this.emit('queue-updated', this.getQueueState());
+      await this.processQueue();
+      return;
+    }
+
     let download = this.activeDownloads.get(downloadId);
 
     // If not in active downloads, load from metadata
@@ -258,6 +357,12 @@ class DownloadManager extends EventEmitter {
       // Handle single-connection downloads: resume not supported
       if (metadata.singleConnection) {
         throw new Error('Resume not supported for single-connection downloads');
+      }
+
+      // Update status in downloadsList
+      const item = this.downloadsList.find(d => d.downloadId === downloadId);
+      if (item) {
+        item.status = 'downloading';
       }
 
       if (metadata.engine === 'yt-dlp' || metadata.isVideoSource) {
@@ -285,6 +390,7 @@ class DownloadManager extends EventEmitter {
 
         await this.metadataManager.updateStatus(downloadId, 'downloading');
         await videoManager.resume();
+        this.emit('queue-updated', this.getQueueState());
         return;
       }
 
@@ -325,6 +431,7 @@ class DownloadManager extends EventEmitter {
 
     // Resume download
     await download.segmentManager.resume();
+    this.emit('queue-updated', this.getQueueState());
   }
 
   /**
@@ -341,6 +448,48 @@ class DownloadManager extends EventEmitter {
 
     // Update metadata
     await this.metadataManager.updateStatus(downloadId, 'cancelled');
+
+    const item = this.downloadsList.find(d => d.downloadId === downloadId);
+    if (item) {
+      item.status = 'cancelled';
+    }
+
+    this.queue = this.queue.filter(item => item.downloadId !== downloadId);
+    this.emit('queue-updated', this.getQueueState());
+  }
+
+  /**
+   * Delete a download completely
+   * @param {string} downloadId - Download ID
+   * @param {boolean} deleteFile - Delete the downloaded file too
+   * @returns {Promise<void>}
+   */
+  async deleteDownload(downloadId, deleteFile = false) {
+    const download = this.activeDownloads.get(downloadId);
+    if (download) {
+      try {
+        download.segmentManager.pause();
+      } catch (e) {}
+      this.activeDownloads.delete(downloadId);
+    }
+
+    this.queue = this.queue.filter(item => item.downloadId !== downloadId);
+    this.downloadsList = this.downloadsList.filter(item => item.downloadId !== downloadId);
+
+    const metadata = await this.metadataManager.loadMetadata(downloadId);
+    if (metadata) {
+      if (deleteFile && metadata.filePath) {
+        try {
+          const fs = require('fs').promises;
+          await fs.unlink(metadata.filePath);
+        } catch (e) {
+          console.error(`Failed to delete file: ${e.message}`);
+        }
+      }
+      await this.metadataManager.deleteMetadata(downloadId);
+    }
+
+    this.emit('queue-updated', this.getQueueState());
   }
 
   /**
@@ -351,6 +500,13 @@ class DownloadManager extends EventEmitter {
   async handleProgress(downloadId, progress) {
     const download = this.activeDownloads.get(downloadId);
     if (!download) return;
+
+    // Update in-memory cache
+    const item = this.downloadsList.find(d => d.downloadId === downloadId);
+    if (item) {
+      item.progress = progress;
+      item.status = 'downloading';
+    }
 
     // Emit progress event
     this.emit('progress', downloadId, {
@@ -385,6 +541,21 @@ class DownloadManager extends EventEmitter {
     // Update metadata
     await this.metadataManager.updateStatus(downloadId, 'completed');
 
+    // Update in-memory item status
+    const item = this.downloadsList.find(d => d.downloadId === downloadId);
+    if (item) {
+      item.status = 'completed';
+      if (item.fileSize) {
+        item.progress = {
+          percentage: 100,
+          downloadedBytes: item.fileSize,
+          totalBytes: item.fileSize,
+          speed: 0,
+          eta: 0
+        };
+      }
+    }
+
     // Emit complete event
     this.emit('complete', downloadId);
 
@@ -410,6 +581,12 @@ class DownloadManager extends EventEmitter {
       status: 'error',
       error: error.message
     });
+
+    // Update in-memory item status
+    const item = this.downloadsList.find(d => d.downloadId === downloadId);
+    if (item) {
+      item.status = 'failed';
+    }
 
     // Emit error event
     this.emit('error', downloadId, error.message);
