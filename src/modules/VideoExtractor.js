@@ -22,7 +22,13 @@ class VideoExtractor {
       'dailymotion.com',
       'tiktok.com',
       'instagram.com',
-      'facebook.com'
+      'facebook.com',
+      'twitter.com',
+      'x.com',
+      'reddit.com',
+      'twitch.tv',
+      'pinterest.com',
+      'linkedin.com'
     ];
   }
 
