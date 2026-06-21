@@ -1,8 +1,20 @@
 const EventEmitter = require('events');
 const fs = require('fs').promises;
 const path = require('path');
-const ytdlp = require('yt-dlp-exec');
-const ffmpegPath = require('ffmpeg-static');
+const ytdlpRaw = require('yt-dlp-exec');
+const ffmpegStaticPath = require('ffmpeg-static');
+
+let ytdlpBinPath = path.join(path.dirname(require.resolve('yt-dlp-exec')), '..', 'bin', process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp');
+if (ytdlpBinPath.includes('app.asar')) {
+  ytdlpBinPath = ytdlpBinPath.replace('app.asar', 'app.asar.unpacked');
+}
+const ytdlp = ytdlpRaw.create(ytdlpBinPath);
+
+let ffmpegPath = ffmpegStaticPath;
+if (ffmpegPath && ffmpegPath.includes('app.asar')) {
+  ffmpegPath = ffmpegPath.replace('app.asar', 'app.asar.unpacked');
+}
+
 
 function parseHumanNumber(value) {
   if (!value) return null;

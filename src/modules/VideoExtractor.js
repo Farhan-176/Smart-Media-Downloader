@@ -1,6 +1,12 @@
 const path = require('path');
 const { URL } = require('url');
-const ytdlp = require('yt-dlp-exec');
+const ytdlpRaw = require('yt-dlp-exec');
+
+let ytdlpBinPath = path.join(path.dirname(require.resolve('yt-dlp-exec')), '..', 'bin', process.platform === 'win32' ? 'yt-dlp.exe' : 'yt-dlp');
+if (ytdlpBinPath.includes('app.asar')) {
+  ytdlpBinPath = ytdlpBinPath.replace('app.asar', 'app.asar.unpacked');
+}
+const ytdlp = ytdlpRaw.create(ytdlpBinPath);
 
 function sanitizeFilename(filename) {
   return String(filename || 'video')
