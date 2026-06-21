@@ -548,6 +548,11 @@ tbody tr.selected td {
   box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.15);
 }
 
+.form-select option {
+  background-color: var(--dark-bg);
+  color: var(--text-primary);
+}
+
 .form-row {
   display: flex;
   gap: 8px;

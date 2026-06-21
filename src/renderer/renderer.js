@@ -217,6 +217,20 @@ function setupEventListeners() {
     elements.fileInfoSavePath.value = `${state.currentDownloadDir}\\${category}\\${filename}`;
   });
 
+  // Quality change inside File Info
+  elements.qualitySelect.addEventListener('change', () => {
+    if (!state.currentMetadata) return;
+    const selectedOption = elements.qualitySelect.selectedOptions[0];
+    if (selectedOption) {
+      const size = selectedOption.dataset.fileSize;
+      if (size && size !== 'null' && size !== 'undefined' && size !== '') {
+        elements.fileInfoSizeDisplay.textContent = formatFileSize(parseInt(size, 10));
+      } else {
+        elements.fileInfoSizeDisplay.textContent = 'Unknown';
+      }
+    }
+  });
+
   // Schedule toggle inside File Info
   elements.scheduleToggle.addEventListener('change', () => {
     elements.scheduleTimeInput.style.display = elements.scheduleToggle.checked ? 'block' : 'none';
@@ -370,11 +384,21 @@ function displayFileInfo(metadata) {
       option.value = format.formatId;
       option.textContent = format.label;
       option.dataset.isAudio = !!format.isAudio;
+      option.dataset.fileSize = format.fileSize || '';
       elements.qualitySelect.appendChild(option);
     });
     elements.qualitySelectorContainer.style.display = 'block';
+    
+    // Set size display to match the default selected (first) quality option
+    const firstFormat = metadata.availableFormats[0];
+    if (firstFormat && firstFormat.fileSize) {
+      elements.fileInfoSizeDisplay.textContent = formatFileSize(firstFormat.fileSize);
+    } else {
+      elements.fileInfoSizeDisplay.textContent = 'Unknown';
+    }
   } else {
     elements.qualitySelectorContainer.style.display = 'none';
+    elements.fileInfoSizeDisplay.textContent = formatFileSize(metadata.fileSize);
   }
 
   elements.fileInfoSection.style.display = 'flex';
