@@ -35,6 +35,49 @@ let mainWindow;
 let downloadManager;
 let metadataManager;
 let integrationServer;
+let activeProgressWindows = new Map();
+
+function openProgressWindow(downloadId) {
+  if (activeProgressWindows.has(downloadId)) {
+    const existingWindow = activeProgressWindows.get(downloadId);
+    if (!existingWindow.isDestroyed()) {
+      existingWindow.show();
+      existingWindow.focus();
+      return;
+    }
+  }
+
+  const progressWindow = new BrowserWindow({
+    width: 540,
+    height: 280,
+    resizable: false,
+    maximizable: false,
+    title: 'Downloading...',
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      preload: path.join(__dirname, 'preload.js')
+    },
+    backgroundColor: '#0d0e12',
+    show: false
+  });
+
+  progressWindow.setMenu(null);
+
+  progressWindow.loadFile(path.join(__dirname, 'renderer', 'progress.html'), {
+    query: { id: downloadId }
+  });
+
+  progressWindow.once('ready-to-show', () => {
+    progressWindow.show();
+  });
+
+  progressWindow.on('closed', () => {
+    activeProgressWindows.delete(downloadId);
+  });
+
+  activeProgressWindows.set(downloadId, progressWindow);
+}
 
 // Create main application window
 function createWindow() {
@@ -157,6 +200,23 @@ app.whenReady().then(async () => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('queue-updated', queue);
     }
+    for (const [id, win] of activeProgressWindows.entries()) {
+      if (!win.isDestroyed()) {
+        win.webContents.send('queue-updated', queue);
+      }
+    }
+  });
+
+  downloadManager.on('progress', (id, progress) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('download-progress', progress);
+    }
+    if (activeProgressWindows.has(id)) {
+      const win = activeProgressWindows.get(id);
+      if (!win.isDestroyed()) {
+        win.webContents.send('download-progress', progress);
+      }
+    }
   });
 
   downloadManager.on('complete', async (downloadId) => {
@@ -164,6 +224,16 @@ app.whenReady().then(async () => {
       const metadata = await metadataManager.loadMetadata(downloadId);
       if (metadata) {
         showSystemNotification('Download Completed! 🎉', `Successfully downloaded: ${metadata.filename}`);
+      }
+
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('download-complete', downloadId);
+      }
+      if (activeProgressWindows.has(downloadId)) {
+        const win = activeProgressWindows.get(downloadId);
+        if (!win.isDestroyed()) {
+          win.webContents.send('download-complete', downloadId);
+        }
       }
 
       // Check if all downloads in the queue are finished
@@ -182,6 +252,16 @@ app.whenReady().then(async () => {
       const metadata = await metadataManager.loadMetadata(downloadId);
       if (metadata) {
         showSystemNotification('Download Failed ❌', `Error downloading ${metadata.filename}: ${errMsg}`);
+      }
+
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('download-error', errMsg);
+      }
+      if (activeProgressWindows.has(downloadId)) {
+        const win = activeProgressWindows.get(downloadId);
+        if (!win.isDestroyed()) {
+          win.webContents.send('download-error', errMsg);
+        }
       }
     } catch (err) {
       console.error(err);
@@ -219,30 +299,16 @@ function setupIPCHandlers() {
     }
   });
 
+  // Open download progress window
+  ipcMain.handle('open-progress-window', (event, downloadId) => {
+    openProgressWindow(downloadId);
+    return { success: true };
+  });
+
   // Start download
   ipcMain.handle('start-download', async (event, url, filename, options = {}) => {
     try {
       const downloadId = await downloadManager.startDownload(url, filename, options);
-      
-      // Set up progress callbacks
-      downloadManager.on('progress', (id, progress) => {
-        if (id === downloadId) {
-          mainWindow.webContents.send('download-progress', progress);
-        }
-      });
-
-      downloadManager.on('complete', (id) => {
-        if (id === downloadId) {
-          mainWindow.webContents.send('download-complete', id);
-        }
-      });
-
-      downloadManager.on('error', (id, error) => {
-        if (id === downloadId) {
-          mainWindow.webContents.send('download-error', error);
-        }
-      });
-
       return { success: true, downloadId };
     } catch (error) {
       return { success: false, error: error.message };

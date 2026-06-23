@@ -39,6 +39,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('browser-download-trigger', (event, data) => callback(data));
   },
   
+  openProgressWindow: (downloadId) => ipcRenderer.invoke('open-progress-window', downloadId),
+  
   getQueueState: () => ipcRenderer.invoke('get-queue-state'),
   onQueueUpdated: (callback) => {
     ipcRenderer.on('queue-updated', (event, queue) => callback(queue));
