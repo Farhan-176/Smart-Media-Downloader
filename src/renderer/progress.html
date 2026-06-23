@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'">
+  <title>Downloading...</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body {
+      background-color: var(--dark-bg);
+      background-image: radial-gradient(circle at 10% 20%, rgba(0, 212, 255, 0.03) 0%, transparent 45%);
+      padding: 16px;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .progress-window-container {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      justify-content: space-between;
+    }
+    .file-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--primary-color);
+      margin-bottom: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      user-select: text;
+    }
+    .progress-container {
+      margin-bottom: 16px;
+    }
+    .progress-bar-wrapper {
+      background: rgba(0, 0, 0, 0.25);
+      height: 28px;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+      position: relative;
+    }
+    .progress-bar {
+      background: linear-gradient(90deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+      height: 100%;
+      width: 0%;
+      transition: width 0.1s linear;
+    }
+    .progress-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 12px;
+      font-weight: 700;
+      color: #ffffff;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+      pointer-events: none;
+      z-index: 10;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      background: rgba(0, 0, 0, 0.15);
+      padding: 12px 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      margin-bottom: 16px;
+    }
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .stat-item label {
+      font-size: 10px;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .stat-item span {
+      font-size: 13px;
+      color: var(--text-primary);
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .control-buttons {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="progress-window-container">
+    <div>
+      <div id="fileTitle" class="file-title" title="Initializing...">Initializing download...</div>
+      
+      <div class="progress-container">
+        <div class="progress-bar-wrapper">
+          <div id="progressBar" class="progress-bar"></div>
+          <span id="progressText" class="progress-text">0.0%</span>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-item">
+          <label>Downloaded</label>
+          <span id="downloadedDisplay">0 B / 0 B</span>
+        </div>
+        <div class="stat-item">
+          <label>Speed</label>
+          <span id="speedDisplay">0 B/s</span>
+        </div>
+        <div class="stat-item">
+          <label>ETA</label>
+          <span id="etaDisplay">Calculating...</span>
+        </div>
+        <div class="stat-item">
+          <label>Status</label>
+          <div>
+            <span id="statusDisplay" class="status-badge status-downloading">Initializing</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="control-buttons">
+      <button id="pauseBtn" class="btn btn-warning btn-sm">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+          <rect x="4" y="3" width="3" height="10"/>
+          <rect x="9" y="3" width="3" height="10"/>
+        </svg>
+        Pause
+      </button>
+      <button id="resumeBtn" class="btn btn-success btn-sm" style="display: none;">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M5 3L13 8L5 13V3Z"/>
+        </svg>
+        Resume
+      </button>
+      <button id="cancelBtn" class="btn btn-danger btn-sm">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" stroke="currentColor" stroke-width="1.5">
+          <path d="M3 3L13 13M13 3L3 13"/>
+        </svg>
+        Cancel
+      </button>
+    </div>
+  </div>
+
+  <script src="progress.js"></script>
+</body>
+</html>

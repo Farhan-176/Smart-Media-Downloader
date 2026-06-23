@@ -20,7 +20,6 @@ const elements = {
   addUrlModal: document.getElementById('addUrlModal'),
   optionsModal: document.getElementById('optionsModal'),
   fileInfoSection: document.getElementById('fileInfoSection'), // File Info Modal
-  progressSection: document.getElementById('progressSection'), // Progress Modal
   recoverySection: document.getElementById('recoverySection'), // Recovery Modal
   dragOverlay: document.getElementById('dragOverlay'),
   clipboardToast: document.getElementById('clipboardToast'),
@@ -48,7 +47,6 @@ const elements = {
   // Modal Close Buttons
   closeAddUrlModal: document.getElementById('closeAddUrlModal'),
   closeOptionsModal: document.getElementById('closeOptionsModal'),
-  closeProgressModal: document.getElementById('closeProgressModal'),
   cancelInfoBtnCross: document.getElementById('cancelInfoBtnCross'),
   closeRecoveryModal: document.getElementById('closeRecoveryModal'),
 
@@ -79,18 +77,6 @@ const elements = {
   completionActionSelect: document.getElementById('completionActionSelect'),
   clipboardToggle: document.getElementById('clipboardToggle'),
   saveOptionsBtn: document.getElementById('saveOptionsBtn'),
-
-  // Progress Modal Displays
-  progressTitle: document.getElementById('progressTitle'),
-  progressBar: document.getElementById('progressBar'),
-  progressText: document.getElementById('progressText'),
-  downloadedDisplay: document.getElementById('downloadedDisplay'),
-  speedDisplay: document.getElementById('speedDisplay'),
-  etaDisplay: document.getElementById('etaDisplay'),
-  statusDisplay: document.getElementById('statusDisplay'),
-  pauseBtn: document.getElementById('pauseBtn'),
-  resumeBtn: document.getElementById('resumeBtn'),
-  cancelBtn: document.getElementById('cancelBtn'),
 
   // Workspace Tables & Stats
   downloadsTableBody: document.getElementById('downloadsTableBody'),
@@ -161,7 +147,6 @@ function setupEventListeners() {
   // Modal Closures
   elements.closeAddUrlModal.addEventListener('click', () => elements.addUrlModal.style.display = 'none');
   elements.closeOptionsModal.addEventListener('click', () => elements.optionsModal.style.display = 'none');
-  elements.closeProgressModal.addEventListener('click', () => elements.progressSection.style.display = 'none');
   elements.cancelInfoBtnCross.addEventListener('click', () => elements.fileInfoSection.style.display = 'none');
   if (elements.closeRecoveryModal) {
     elements.closeRecoveryModal.addEventListener('click', () => elements.recoverySection.style.display = 'none');
@@ -235,11 +220,6 @@ function setupEventListeners() {
   elements.scheduleToggle.addEventListener('change', () => {
     elements.scheduleTimeInput.style.display = elements.scheduleToggle.checked ? 'block' : 'none';
   });
-
-  // Live Progress Modal Controls
-  elements.pauseBtn.addEventListener('click', handleProgressPause);
-  elements.resumeBtn.addEventListener('click', handleProgressResume);
-  elements.cancelBtn.addEventListener('click', handleProgressCancel);
 
   // Toast actions
   elements.toastCloseBtn.addEventListener('click', () => elements.clipboardToast.style.display = 'none');
@@ -449,10 +429,7 @@ async function handleDownload(isLater = false) {
       elements.fileInfoSection.style.display = 'none';
 
       if (!isLater && !options.scheduleTime) {
-        // Automatically open live progress modal for direct download
-        elements.progressTitle.textContent = `Downloading ${customFilename}`;
-        elements.progressSection.style.display = 'flex';
-        updateProgressUI(0, 0, state.currentMetadata.fileSize, 0, Infinity, 'downloading');
+        window.electronAPI.openProgressWindow(result.downloadId);
       } else {
         showMessage(options.scheduleTime ? 'Download scheduled successfully!' : 'Download queued later.', 'success');
       }
@@ -474,13 +451,7 @@ function handleToolbarResume() {
   window.electronAPI.resumeDownload(state.selectedDownloadId).then(res => {
     if (!res.success) showMessage(res.error, 'error');
     else {
-      // Find the item and open progress modal
-      const item = state.downloads.find(d => d.downloadId === state.selectedDownloadId);
-      if (item) {
-        state.currentDownloadId = item.downloadId;
-        elements.progressTitle.textContent = `Downloading ${item.filename}`;
-        elements.progressSection.style.display = 'flex';
-      }
+      window.electronAPI.openProgressWindow(state.selectedDownloadId);
       loadQueueState();
     }
   });
@@ -536,48 +507,9 @@ function handleDeleteCompleted() {
 }
 
 /**
- * Progress Modal Controls
- */
-function handleProgressPause() {
-  if (!state.currentDownloadId) return;
-  window.electronAPI.pauseDownload(state.currentDownloadId).then(() => {
-    updateProgressStatus('paused');
-  });
-}
-
-function handleProgressResume() {
-  if (!state.currentDownloadId) return;
-  window.electronAPI.resumeDownload(state.currentDownloadId).then(() => {
-    updateProgressStatus('downloading');
-  });
-}
-
-function handleProgressCancel() {
-  if (!state.currentDownloadId) return;
-  const confirmed = confirm('Cancel this download?');
-  if (confirmed) {
-    window.electronAPI.cancelDownload(state.currentDownloadId).then(() => {
-      elements.progressSection.style.display = 'none';
-      loadQueueState();
-    });
-  }
-}
-
-/**
  * Live Progress callback from IPC
  */
 function updateActiveProgress(progress) {
-  if (state.currentDownloadId === progress.downloadId) {
-    updateProgressUI(
-      progress.percentage,
-      progress.downloadedBytes,
-      progress.totalBytes,
-      progress.speed,
-      progress.eta,
-      'downloading'
-    );
-  }
-
   // Update in-memory data for real-time table rendering
   const item = state.downloads.find(d => d.downloadId === progress.downloadId);
   if (item) {
@@ -585,28 +517,6 @@ function updateActiveProgress(progress) {
     item.status = 'downloading';
     updateTableRowProgress(progress);
   }
-}
-
-function updateProgressStatus(status) {
-  elements.statusDisplay.className = `status-badge status-${status}`;
-  elements.statusDisplay.textContent = status.charAt(0).toUpperCase() + status.slice(1);
-  if (status === 'paused') {
-    elements.pauseBtn.style.display = 'none';
-    elements.resumeBtn.style.display = 'inline-flex';
-  } else {
-    elements.resumeBtn.style.display = 'none';
-    elements.pauseBtn.style.display = 'inline-flex';
-  }
-}
-
-function updateProgressUI(percentage, downloaded, total, speed, eta, status) {
-  const roundedPercentage = Math.min(100, Math.max(0, percentage));
-  elements.progressBar.style.width = `${roundedPercentage}%`;
-  elements.progressText.textContent = `${roundedPercentage.toFixed(1)}%`;
-  elements.downloadedDisplay.textContent = `${formatFileSize(downloaded)} / ${formatFileSize(total)}`;
-  elements.speedDisplay.textContent = `${formatFileSize(speed)}/s`;
-  elements.etaDisplay.textContent = formatETA(eta);
-  updateProgressStatus(status);
 }
 
 /**
@@ -731,15 +641,8 @@ function renderDownloadsTable() {
     });
 
     tr.addEventListener('dblclick', () => {
-      if (item.status === 'downloading' || item.status === 'paused' || item.status === 'queued') {
-        state.currentDownloadId = item.downloadId;
-        elements.progressTitle.textContent = `Downloading ${item.filename}`;
-        elements.progressSection.style.display = 'flex';
-        if (item.progress) {
-          updateProgressUI(item.progress.percentage, item.progress.downloadedBytes, item.progress.totalBytes, item.progress.speed, item.progress.eta, item.status);
-        } else {
-          updateProgressUI(0, 0, item.fileSize || 0, 0, Infinity, item.status);
-        }
+      if (item.status === 'downloading' || item.status === 'paused' || item.status === 'queued' || item.status === 'scheduled') {
+        window.electronAPI.openProgressWindow(item.downloadId);
       } else if (item.status === 'completed') {
         // Alert detailing path info
         alert(`File save path:\n${item.filePath}`);

@@ -327,65 +327,7 @@
     </div>
   </section>
 
-  <!-- MODAL: Live Progress Dialog -->
-  <section id="progressSection" class="modal-overlay non-blocking" style="display: none;">
-    <div class="modal-content progress-content">
-      <div class="modal-header">
-        <h3 id="progressTitle">Downloading file...</h3>
-        <button class="modal-close" id="closeProgressModal">&times;</button>
-      </div>
-      <div class="modal-body">
-        <div class="progress-container">
-          <div class="progress-bar-wrapper">
-            <div id="progressBar" class="progress-bar" style="width: 0%;">
-              <span id="progressText" class="progress-text">0%</span>
-            </div>
-          </div>
-        </div>
 
-        <div class="stats-grid">
-          <div class="stat-item">
-            <label>Downloaded:</label>
-            <span id="downloadedDisplay">0 B / 0 B</span>
-          </div>
-          <div class="stat-item">
-            <label>Speed:</label>
-            <span id="speedDisplay">0 B/s</span>
-          </div>
-          <div class="stat-item">
-            <label>ETA:</label>
-            <span id="etaDisplay">Calculating...</span>
-          </div>
-          <div class="stat-item">
-            <label>Status:</label>
-            <span id="statusDisplay" class="status-badge status-downloading">Downloading</span>
-          </div>
-        </div>
-
-        <div class="control-buttons">
-          <button id="pauseBtn" class="btn btn-warning">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-              <rect x="4" y="3" width="3" height="10"/>
-              <rect x="9" y="3" width="3" height="10"/>
-            </svg>
-            Pause
-          </button>
-          <button id="resumeBtn" class="btn btn-success" style="display: none;">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M5 3L13 8L5 13V3Z"/>
-            </svg>
-            Resume
-          </button>
-          <button id="cancelBtn" class="btn btn-danger">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M3 3L13 13M13 3L3 13" stroke="currentColor" stroke-width="2"/>
-            </svg>
-            Cancel
-          </button>
-        </div>
-      </div>
-    </div>
-  </section>
 
   <!-- Status Messages -->
   <div id="statusMessage" class="status-message" style="display: none;"></div>
