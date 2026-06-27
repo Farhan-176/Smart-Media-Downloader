@@ -1,227 +1,26 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Smart Media Downloader — High Speed Segmented Download Engine</title>
-  <link rel="stylesheet" href="styles.css">
-  <meta name="description" content="A premium production-quality desktop download manager with a segmented multi-connection engine. Intercepts, speeds up, and schedules your downloads.">
-</head>
-<body>
-  <!-- Navigation -->
-  <nav class="navbar">
-    <div class="nav-container">
-      <div class="logo">
-        <span class="logo-icon">⚡</span>
-        <span class="logo-text">SmartDownloader</span>
-      </div>
-      <div class="nav-links">
-        <a href="#features">Features</a>
-        <a href="#extension">Browser Integration</a>
-        <a href="#download" class="nav-btn">Download</a>
-      </div>
-    </div>
-  </nav>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Smart Media Downloader — High Speed Segmented Download Engine</title>
+    <meta name="description" content="A premium, free, open-source desktop download manager with a segmented multi-connection engine. Up to 5x faster downloads, video extraction, and browser integration." />
+    <meta name="keywords" content="download manager, segmented downloads, multi-connection, yt-dlp, video downloader, browser extension, free, open source" />
 
-  <!-- Hero Section -->
-  <header class="hero">
-    <div class="hero-container">
-      <div class="hero-content">
-        <div class="badge">Version 1.0.0 Out Now</div>
-        <h1>Supercharge Your Downloads</h1>
-        <p class="hero-subtitle">
-          Experience lightning-fast speeds with our segmented multi-connection engine. Automatically intercepts browser downloads, extracts streaming media, and schedules files with ease.
-        </p>
-        <div class="hero-actions">
-          <a href="#download" class="btn btn-primary">
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="7 10 12 15 17 10"></polyline>
-              <line x1="12" y1="15" x2="12" y2="3"></line>
-            </svg>
-            Download for Windows
-          </a>
-          <a href="#features" class="btn btn-secondary">Learn More</a>
-        </div>
-      </div>
+    <!-- Open Graph -->
+    <meta property="og:title" content="Smart Media Downloader — High Speed Segmented Download Engine" />
+    <meta property="og:description" content="A premium, free, open-source desktop download manager. Up to 5x faster downloads with segmented multi-connection engine." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://smart-media-downloader.vercel.app" />
 
-      <!-- App Mockup UI (Interactive HTML/CSS preview instead of image) -->
-      <div class="hero-preview">
-        <div class="preview-window">
-          <div class="window-header">
-            <div class="window-dots">
-              <span class="dot close"></span>
-              <span class="dot minimize"></span>
-              <span class="dot expand"></span>
-            </div>
-            <div class="window-title">Smart Media Downloader</div>
-          </div>
-          <div class="window-body">
-            <!-- Sidebar -->
-            <div class="sidebar-mock">
-              <div class="sidebar-item active">All Downloads</div>
-              <div class="sidebar-item">🎬 Videos</div>
-              <div class="sidebar-item">🎵 Music</div>
-              <div class="sidebar-item">📄 Documents</div>
-            </div>
-            <!-- Main Content -->
-            <div class="content-mock">
-              <div class="table-mock-header">
-                <span>File Name</span>
-                <span>Size</span>
-                <span>Progress</span>
-              </div>
-              <div class="table-row-mock">
-                <span>Space-Launch-4K.mp4</span>
-                <span>242.4 MB</span>
-                <span class="progress-col">
-                  <div class="prog-bar-mock"><div class="fill" style="width: 82%"></div></div>
-                  <span class="pct">82%</span>
-                </span>
-              </div>
-              <div class="table-row-mock">
-                <span>Album-Uncompressed.zip</span>
-                <span>1.2 GB</span>
-                <span class="progress-col">
-                  <div class="prog-bar-mock"><div class="fill" style="width: 45%"></div></div>
-                  <span class="pct">45%</span>
-                </span>
-              </div>
-              <div class="table-row-mock">
-                <span>Documentation.pdf</span>
-                <span>4.8 MB</span>
-                <span class="progress-col">
-                  <span class="status-mock status-complete">✓ Completed</span>
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </header>
-
-  <!-- Features Section -->
-  <section id="features" class="features">
-    <div class="section-container">
-      <div class="section-header">
-        <h2>Built for Speed & Utility</h2>
-        <p>A production-ready download manager equipped with all the advanced utilities you need.</p>
-      </div>
-
-      <div class="features-grid">
-        <div class="feature-card">
-          <div class="feature-icon">⚡</div>
-          <h3>Multi-Connection Engine</h3>
-          <p>Splits files into multiple parallel segments to bypass bandwidth throttles, boosting download speeds by up to 5x.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">🔌</div>
-          <h3>Browser Integration</h3>
-          <p>Intercepts browser downloads automatically and routes them directly to the native desktop application.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">🎬</div>
-          <h3>Media Streams Extractor</h3>
-          <p>Detects streaming media and video feeds from video hosting sites, letting you download them in your preferred quality.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">📅</div>
-          <h3>Smart Scheduler</h3>
-          <p>Queue files to download later or set specific times for downloads to begin and automatically suspend your PC when done.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Browser Extension Guide -->
-  <section id="extension" class="extension-guide">
-    <div class="section-container">
-      <div class="extension-layout">
-        <div class="extension-content">
-          <h2>Browser Extension Integration</h2>
-          <p>Just like IDM, the application intercepts links directly in your browser using our custom manifest-v3 integration extension.</p>
-          
-          <div class="steps">
-            <div class="step-item">
-              <span class="step-num">1</span>
-              <div>
-                <h4>Open Extensions Page</h4>
-                <p>Go to <code>chrome://extensions/</code> in Chrome, Brave, or Edge.</p>
-              </div>
-            </div>
-            <div class="step-item">
-              <span class="step-num">2</span>
-              <div>
-                <h4>Enable Developer Mode</h4>
-                <p>Toggle the "Developer mode" switch in the top-right corner.</p>
-              </div>
-            </div>
-            <div class="step-item">
-              <span class="step-num">3</span>
-              <div>
-                <h4>Load Unpacked</h4>
-                <p>Click "Load unpacked" and select the <code>extension</code> folder in the root of the project.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Extension Mock Preview -->
-        <div class="extension-visual">
-          <div class="extension-popup-mock">
-            <div class="popup-header">
-              <span class="logo-icon">⚡</span>
-              <span>SmartDownloader Integration</span>
-            </div>
-            <div class="popup-body">
-              <div class="status-indicator">
-                <span class="indicator-dot green"></span>
-                <span>Connected to Desktop App</span>
-              </div>
-              <div class="options-toggle">
-                <span>Intercept Downloads</span>
-                <span class="toggle active"></span>
-              </div>
-              <div class="options-toggle">
-                <span>Context Menus</span>
-                <span class="toggle active"></span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Download CTA Section -->
-  <section id="download" class="cta-section">
-    <div class="section-container">
-      <div class="cta-card">
-        <h2>Start Downloading Smarter Today</h2>
-        <p>Get the desktop download engine for Windows and run it locally.</p>
-        <div class="cta-buttons">
-          <a href="https://github.com/Farhan-176/Smart-Media-Downloader/releases" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-large">
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-              <polyline points="7 10 12 15 17 10"></polyline>
-              <line x1="12" y1="15" x2="12" y2="3"></line>
-            </svg>
-            Download Desktop App (.exe)
-          </a>
-          <a href="https://github.com/Farhan-176/Smart-Media-Downloader" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-large">View Source Code</a>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Footer -->
-  <footer>
-    <div class="footer-container">
-      <p>© 2026 Smart Media Downloader Team. Open source under MIT License.</p>
-    </div>
-  </footer>
-
-  <script src="app.js"></script>
-</body>
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Smart Media Downloader" />
+    <meta name="twitter:description" content="Free, open-source desktop download manager with 5x speed boost." />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
 </html>
